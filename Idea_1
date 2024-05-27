@@ -1,0 +1,11 @@
+git clone https://github.com/votre-utilisateur/bookmania.git
+cd bookmania
+
+npm install
+
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=password
+DB_NAME=bookmania
+
+npm start
