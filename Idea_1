@@ -1,11 +1,206 @@
-git clone https://github.com/votre-utilisateur/bookmania.git
-cd bookmania
+# package.json
+{
+  "name": "bookmania",
+  "version": "1.0.0",
+  "description": "Application de gestion de bibliothèque",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "mysql": "^2.18.1",
+    "dotenv": "^8.2.0",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
+    "react-router-dom": "^5.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
+  },
+  "author": "",
+  "license": "MIT"
+}
 
-npm install
+# src/index.js 
 
-DB_HOST=localhost
-DB_USER=root
-DB_PASS=password
-DB_NAME=bookmania
+const express = require('express');
+const mysql = require('mysql');
+const dotenv = require('dotenv');
+const path = require('path');
 
-npm start
+dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Connexion à la base de données
+const db = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME
+});
+
+db.connect((err) => {
+  if (err) {
+    throw err;
+  }
+  console.log('Connecté à la base de données MySQL');
+});
+
+// Middleware pour servir les fichiers statiques
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Route de base
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+app.listen(port, () => {
+  console.log(`Serveur démarré sur le port ${port}`);
+});
+
+# public/index.html 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookMania</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script src="/bundle.js"></script>
+</body>
+</html>
+
+# src/App.js
+
+import React from 'react';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
+import BookManagement from './pages/BookManagement';
+
+function App() {
+  return (
+    <Router>
+      <div className="App">
+        <Switch>
+          <Route path="/" exact component={Dashboard} />
+          <Route path="/books" component={BookManagement} />
+        </Switch>
+      </div>
+    </Router>
+  );
+}
+
+export default App;
+
+# src/pages/Dashboard.js
+
+import React from 'react';
+
+function Dashboard() {
+  return (
+    <div>
+      <h1>Tableau de bord</h1>
+      <p>Bienvenue dans BookMania !</p>
+    </div>
+  );
+}
+
+export default Dashboard;
+
+# src/pages/BookManagement.js
+
+import React from 'react';
+import BookList from '../components/BookList';
+import BookForm from '../components/BookForm';
+
+function BookManagement() {
+  return (
+    <div>
+      <h1>Gestion des livres</h1>
+      <BookForm />
+      <BookList />
+    </div>
+  );
+}
+
+export default BookManagement;
+
+# src/components/BookList.js 
+
+import React, { useState, useEffect } from 'react';
+
+function BookList() {
+  const [books, setBooks] = useState([]);
+
+  useEffect(() => {
+    // Fetch books from the server
+    fetch('/api/books')
+      .then(response => response.json())
+      .then(data => setBooks(data));
+  }, []);
+
+  return (
+    <div>
+      <h2>Liste des livres</h2>
+      <ul>
+        {books.map(book => (
+          <li key={book.id}>{book.title} - {book.author}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default BookList;
+
+# src/components/BookForm.js
+
+import React, { useState } from 'react';
+
+function BookForm() {
+  const [title, setTitle] = useState('');
+  const [author, setAuthor] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Send book data to the server
+    fetch('/api/books', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title, author }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log('Book added:', data);
+      // Reset form
+      setTitle('');
+      setAuthor('');
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label>Titre:</label>
+        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+      </div>
+      <div>
+        <label>Auteur:</label>
+        <input type="text" value={author} onChange={(e) => setAuthor(e.target.value)} />
+      </div>
+      <button type="submit">Ajouter un livre</button>
+    </form>
+  );
+}
+
+export default BookForm;
